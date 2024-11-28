@@ -1,4 +1,4 @@
-package Client.src.main;
+package src.clint.main;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
