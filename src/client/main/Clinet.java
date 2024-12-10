@@ -1,6 +1,7 @@
-package src.clint.main;
+package src.client.main;
 
 import javax.swing.JFrame;
+import src.client.main.GamePanel;
 import java.io.*;
 import java.net.*;
 import java.util.UUID;
@@ -14,7 +15,7 @@ public class Clinet {
         window.setSize(1600, 1200);
         window.setLocationRelativeTo(null);
 
-        GanePanel gamePanel = new GanePanel();
+        GamePanel gamePanel = new GamePanel();
         window.add(gamePanel);
 
         window.pack();

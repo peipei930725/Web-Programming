@@ -1,4 +1,4 @@
-package src.clint.main;
+package src.client.main;
 
 import javax.swing.JPanel;
 import java.awt.Color;
@@ -20,7 +20,7 @@ public class GanePanel extends JPanel implements Runnable {
     final int screenWidth = maxScreenCol * tileSize;
     final int screenHeight = maxScreeRow * tileSize; 
 
-    KeyHander keyHander = new KeyHander();
+    KeyHandler keyHander = new KeyHandler();
     Thread gameThread;
 
     int playerX = 160;
