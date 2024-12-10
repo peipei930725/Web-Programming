@@ -1,4 +1,4 @@
-package src.sever.main;
+package src.server.main;
 
 import java.io.*;
 import java.net.*;

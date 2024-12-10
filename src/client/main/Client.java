@@ -7,7 +7,7 @@ import java.net.*;
 import java.util.UUID;
 import javax.swing.JFrame;
 
-public class Clinet {
+public class Client {
     public static void main(String[] args) {
         JFrame window = new JFrame("爆爆王");
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
