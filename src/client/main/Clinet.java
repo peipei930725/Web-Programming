@@ -1,12 +1,11 @@
 package src.client.main;
 
-import javax.swing.JFrame;
-import src.client.main.GamePanel;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.*;
 import java.util.UUID;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import javax.swing.JFrame;
 
 public class Clinet {
     public static void main(String[] args) {

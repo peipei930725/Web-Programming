@@ -1,14 +1,14 @@
 package src.client.main;
 
-import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.io.*;
 import java.net.*;
+import javax.swing.JPanel;
 
-public class GanePanel extends JPanel implements Runnable {
+public class GamePanel extends JPanel implements Runnable {
 
     // Screen settings
     final int originalTileSize = 16;
@@ -20,7 +20,7 @@ public class GanePanel extends JPanel implements Runnable {
     final int screenWidth = maxScreenCol * tileSize;
     final int screenHeight = maxScreeRow * tileSize; 
 
-    KeyHandler keyHander = new KeyHandler();
+    KeyHandler keyHandler = new KeyHandler();
     Thread gameThread;
 
     int playerX = 160;
@@ -32,11 +32,11 @@ public class GanePanel extends JPanel implements Runnable {
     private PrintWriter out;
     private BufferedReader in;
 
-    public GanePanel() {
+    public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.BLACK);
         this.setDoubleBuffered(true);
-        this.addKeyListener(keyHander);
+        this.addKeyListener(keyHandler);
         this.setFocusable(true);
     }
 
@@ -94,19 +94,19 @@ public class GanePanel extends JPanel implements Runnable {
 
     public void update() {
         // update information
-        if(keyHander.up && playerY - playerSpeed >= 0) {
+        if(keyHandler.up && playerY - playerSpeed >= 0) {
             playerY -= playerSpeed;
             sendMessage("UP");
         }
-        if(keyHander.down && playerY + playerSpeed + tileSize <= screenHeight) {
+        if(keyHandler.down && playerY + playerSpeed + tileSize <= screenHeight) {
             playerY += playerSpeed;
             sendMessage("DOWN");
         }
-        if(keyHander.left && playerX - playerSpeed >= 0) {
+        if(keyHandler.left && playerX - playerSpeed >= 0) {
             playerX -= playerSpeed;
             sendMessage("LEFT");
         }
-        if(keyHander.right && playerX + playerSpeed + tileSize <= screenWidth) {
+        if(keyHandler.right && playerX + playerSpeed + tileSize <= screenWidth) {
             playerX += playerSpeed;
             sendMessage("RIGHT");
         }
