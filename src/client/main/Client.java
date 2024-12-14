@@ -57,6 +57,10 @@ public class Client {
                     System.exit(0);
                     return;
                 }
+                if ("check".equals(parts[0])) {
+                    out.println("check " + token);
+                    return;
+                }
                 // 你可以在這裡處理其他回應訊息
             }
 
