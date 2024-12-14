@@ -131,10 +131,10 @@ public class Client extends JFrame {
 
                 g.setColor(Color.BLACK);
                 g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-                g.drawString("Player " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
+                g.drawString("玩家 " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
 
                 if (player.health <= 0) {
-                    g.drawString("Player " + (player.userId + 1) + " Dead!", healthBarX, healthBarY + 40);
+                    g.drawString("玩家 " + (player.userId + 1) + " 已死亡！", healthBarX, healthBarY + 40);
                 }
             }
         }
@@ -145,7 +145,7 @@ public class Client extends JFrame {
             // 顯示獲勝者
             g.setColor(Color.BLACK);
             g.setFont(new Font("Arial", Font.BOLD, 36));
-            g.drawString("Player " + (winnerId + 1) + " Win!", getWidth() / 2 - 100, getHeight() / 2 - 100);
+            g.drawString("玩家 " + (winnerId + 1) + " 獲勝！", getWidth() / 2 - 100, getHeight() / 2 - 100);
 
             // 再來一局按鈕
             if (restartButton == null) {
@@ -209,14 +209,33 @@ public class Client extends JFrame {
             try {
                 String json;
                 while ((json = in.readLine()) != null) {
-                    GameState gameState = gson.fromJson(json, GameState.class);
-                    players = gameState.players;
-                    gamePanel.repaint();
+                    if (json.equals("RESET")) {
+                        resetGame();
+                    } else {
+                        GameState gameState = gson.fromJson(json, GameState.class);
+                        players = gameState.players;
+                        gamePanel.repaint();
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void resetGame() {
+        gameOver = false;
+        winnerId = -1; // 重置獲勝者ID
+
+        // 重置遊戲狀態
+        for (PlayerState player : players) {
+            player.health = 100; // 重置血量
+            player.bullets.clear(); // 清除子彈
+        }
+
+        // 重繪遊戲畫面
+        gamePanel.revalidate();
+        gamePanel.repaint();
     }
 
     static class PlayerState {

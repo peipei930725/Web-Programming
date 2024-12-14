@@ -145,6 +145,13 @@ public class Server {
         }
     }
 
+    private static void resetGame() {
+        playerStates.clear();
+        for (ClientHandler client : clients) {
+            client.sendMessage("RESET");
+        }
+    }
+
     static class ClientHandler implements Runnable {
         private Socket socket;
         private int userId;
@@ -168,6 +175,8 @@ public class Server {
                     } else if (command.startsWith("RELEASE ")) {
                         String key = command.substring(8);
                         playerStates.get(userId).keysPressed.remove(key);
+                    } else if (command.equals("RESTART")) {
+                        resetGame();
                     }
                 }
             } catch (IOException e) {
