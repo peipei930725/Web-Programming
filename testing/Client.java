@@ -16,6 +16,7 @@ public class Client extends JFrame {
     private List<PlayerState> players = new ArrayList<>();
     private GamePanel gamePanel;
     private boolean gameOver = false; // 遊戲結束標誌
+    private int winnerId = -1; // 獲勝者ID
 
     public Client() {
         setTitle("Multiplayer Game Client");
@@ -80,6 +81,7 @@ public class Client extends JFrame {
             for (PlayerState player : players) {
                 if (player.health <= 0) {
                     gameOver = true;
+                    winnerId = (player.userId == 0) ? 1 : 0; // 設定獲勝者ID
                 }
             }
 
@@ -101,7 +103,7 @@ public class Client extends JFrame {
                 drawHealthBars(g);
             } else {
                 // 顯示遊戲結束畫面
-                drawGameOverScreen();
+                drawGameOverScreen(g);
             }
         }
 
@@ -129,16 +131,21 @@ public class Client extends JFrame {
 
                 g.setColor(Color.BLACK);
                 g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-                g.drawString("玩家 " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
+                g.drawString("Player " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
 
                 if (player.health <= 0) {
-                    g.drawString("玩家 " + (player.userId + 1) + " 已死亡！", healthBarX, healthBarY + 40);
+                    g.drawString("Player " + (player.userId + 1) + " Dead!", healthBarX, healthBarY + 40);
                 }
             }
         }
 
-        private void drawGameOverScreen() {
+        private void drawGameOverScreen(Graphics g) {
             setLayout(null);
+
+            // 顯示獲勝者
+            g.setColor(Color.BLACK);
+            g.setFont(new Font("Arial", Font.BOLD, 36));
+            g.drawString("Player " + (winnerId + 1) + " Win!", getWidth() / 2 - 100, getHeight() / 2 - 100);
 
             // 再來一局按鈕
             if (restartButton == null) {
@@ -163,6 +170,7 @@ public class Client extends JFrame {
 
     private void restartGame() {
         gameOver = false;
+        winnerId = -1; // 重置獲勝者ID
 
         // 重置遊戲狀態
         for (PlayerState player : players) {
@@ -179,6 +187,9 @@ public class Client extends JFrame {
         // 重繪遊戲畫面
         gamePanel.revalidate();
         gamePanel.repaint();
+
+        // 通知伺服器重置遊戲
+        sendCommandToServer("RESTART");
     }
 
     private class GameStateReceiver implements Runnable {
