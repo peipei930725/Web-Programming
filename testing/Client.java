@@ -65,6 +65,9 @@ public class Client extends JFrame {
     }
 
     private class GamePanel extends JPanel {
+        private JButton restartButton;
+        private JButton exitButton;
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -97,8 +100,8 @@ public class Client extends JFrame {
                 // 繪製血條
                 drawHealthBars(g);
             } else {
-                // 繪製遊戲結束畫面
-                drawGameOverScreen(g);
+                // 顯示遊戲結束畫面
+                drawGameOverScreen();
             }
         }
 
@@ -134,23 +137,24 @@ public class Client extends JFrame {
             }
         }
 
-        private void drawGameOverScreen(Graphics g) {
-            g.setColor(Color.BLACK);
-            g.setFont(new Font("Arial", Font.BOLD, 36));
-            g.drawString("遊戲結束！", getWidth() / 2 - 100, getHeight() / 2 - 50);
-
-            JButton restartButton = new JButton("再來一局");
-            JButton exitButton = new JButton("結束遊戲");
-
-            restartButton.setBounds(getWidth() / 2 - 150, getHeight() / 2, 150, 50);
-            exitButton.setBounds(getWidth() / 2 + 10, getHeight() / 2, 150, 50);
-
-            restartButton.addActionListener(e -> restartGame());
-            exitButton.addActionListener(e -> System.exit(0));
-
+        private void drawGameOverScreen() {
             setLayout(null);
-            add(restartButton);
-            add(exitButton);
+
+            // 再來一局按鈕
+            if (restartButton == null) {
+                restartButton = new JButton("再來一局");
+                restartButton.setBounds(getWidth() / 2 - 150, getHeight() / 2 - 25, 150, 50);
+                restartButton.addActionListener(e -> restartGame());
+                add(restartButton);
+            }
+
+            // 結束遊戲按鈕
+            if (exitButton == null) {
+                exitButton = new JButton("結束遊戲");
+                exitButton.setBounds(getWidth() / 2 + 10, getHeight() / 2 - 25, 150, 50);
+                exitButton.addActionListener(e -> System.exit(0));
+                add(exitButton);
+            }
 
             revalidate();
             repaint();
@@ -166,7 +170,13 @@ public class Client extends JFrame {
             player.bullets.clear(); // 清除子彈
         }
 
-        gamePanel.removeAll(); // 移除按鈕
+        // 移除按鈕
+        gamePanel.remove(gamePanel.restartButton);
+        gamePanel.remove(gamePanel.exitButton);
+        gamePanel.restartButton = null;
+        gamePanel.exitButton = null;
+
+        // 重繪遊戲畫面
         gamePanel.revalidate();
         gamePanel.repaint();
     }
