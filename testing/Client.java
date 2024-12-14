@@ -18,7 +18,7 @@ public class Client extends JFrame {
 
     public Client() {
         setTitle("Multiplayer Game Client");
-        setSize(800, 600);
+        setSize(1280, 720);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 

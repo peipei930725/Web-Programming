@@ -5,7 +5,7 @@ import com.google.gson.Gson;
 
 public class Server {
     private static final int PORT = 5000;
-    private static final int TICK_RATE = 1; // 每 16ms 更新一次 (約 60fps)
+    private static final int TICK_RATE = 2; // 每 16ms 更新一次 (約 60fps)
 
     private static Map<Integer, PlayerState> playerStates = Collections.synchronizedMap(new HashMap<>());
     private static List<ClientHandler> clients = Collections.synchronizedList(new ArrayList<>());
@@ -36,54 +36,61 @@ public class Server {
     }
 
     // 遊戲邏輯循環
-    private static void gameLoop() {
-        while (true) {
-            try {
-                Thread.sleep(TICK_RATE);
+// 遊戲畫面大小
+private static final int SCREEN_WIDTH = 1280;
+private static final int SCREEN_HEIGHT = 680;
 
-                // 更新邏輯
-                synchronized (playerStates) {
-                    for (PlayerState player : playerStates.values()) {
-                        Set<String> keys = player.keysPressed;
+private static void gameLoop() {
+    while (true) {
+        try {
+            Thread.sleep(TICK_RATE);
 
-                        // 處理移動邏輯
-                        if (keys.contains("w")) player.y -= player.speed;
-                        if (keys.contains("a")) player.x -= player.speed;
-                        if (keys.contains("s")) player.y += player.speed;
-                        if (keys.contains("d")) player.x += player.speed;
+            // 更新邏輯
+            synchronized (playerStates) {
+                for (PlayerState player : playerStates.values()) {
+                    Set<String> keys = player.keysPressed;
 
-                        // 處理射擊邏輯
-                        if (keys.contains(" ")) {
-                            if (player.fireCooldown == 0) { // 冷卻時間結束才能射擊
+                    // 處理移動邏輯
+                    if (keys.contains("w")) player.y = Math.max(0, player.y - player.speed); // 上邊界
+                    if (keys.contains("a")) player.x = Math.max(0, player.x - player.speed); // 左邊界
+                    if (keys.contains("s")) player.y = Math.min(SCREEN_HEIGHT - 40, player.y + player.speed); // 下邊界
+                    if (keys.contains("d")) player.x = Math.min(SCREEN_WIDTH - 40, player.x + player.speed); // 右邊界
+
+                    // 處理射擊邏輯
+                    if (keys.contains(" ")) {
+                        if (player.fireCooldown == 0) {
+                            if (player.bullets.size() < 10) { // 限制最大子彈數量
                                 player.bullets.add(new Bullet(player.x + 20, player.y + 20));
-                                player.fireCooldown = 80; // 設置冷卻時間 (約 160ms)
                             }
+                            player.fireCooldown = 200; // 設置冷卻時間 (200ms)
                         }
+                    }
 
-                        // 減少射擊冷卻時間
-                        if (player.fireCooldown > 0) {
-                            player.fireCooldown--;
-                        }
+                    // 減少射擊冷卻時間
+                    if (player.fireCooldown > 0) {
+                        player.fireCooldown -= TICK_RATE;
+                    }
 
-                        // 更新子彈位置
-                        Iterator<Bullet> it = player.bullets.iterator();
-                        while (it.hasNext()) {
-                            Bullet bullet = it.next();
-                            bullet.x += bullet.speed;
-                            if (bullet.x > 800) { // 畫面外則移除
-                                it.remove();
-                            }
+                    // 更新子彈位置
+                    Iterator<Bullet> it = player.bullets.iterator();
+                    while (it.hasNext()) {
+                        Bullet bullet = it.next();
+                        bullet.x += bullet.speed;
+                        if (bullet.x > SCREEN_WIDTH || bullet.y < 0 || bullet.y > SCREEN_HEIGHT) {
+                            it.remove(); // 子彈出界，刪除
                         }
                     }
                 }
-
-                // 廣播遊戲狀態
-                broadcastGameState();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
+
+            // 廣播遊戲狀態
+            broadcastGameState();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
+}
+
 
     // 廣播遊戲狀態
     public static void broadcastGameState() {
@@ -156,7 +163,7 @@ public class Server {
     // 子彈類別
     static class Bullet {
         int x, y;
-        int speed = 10;
+        int speed = 1;
 
         Bullet(int x, int y) {
             this.x = x;
