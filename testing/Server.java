@@ -1,38 +1,106 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import com.google.gson.Gson;
 
 public class Server {
     private static final int PORT = 5000;
-    private static final int MAX_CLIENTS = 4;
-    private static int clientCount = 0;
+    private static final int TICK_RATE = 16; // 每 16ms 更新一次 (約 60fps)
+
+    private static Map<Integer, PlayerState> playerStates = Collections.synchronizedMap(new HashMap<>());
+    private static List<ClientHandler> clients = Collections.synchronizedList(new ArrayList<>());
+    private static Gson gson = new Gson();
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("伺服器已啟動，等待連接中...");
+            System.out.println("伺服器已啟動，等待連線...");
+
+            // 啟動遊戲邏輯更新執行緒
+            new Thread(Server::gameLoop).start();
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                int userId = clientCount % MAX_CLIENTS; 
-                clientCount++;
+                int userId = clients.size(); // 每個玩家一個唯一 ID
+                PlayerState playerState = new PlayerState(userId, 400, 300);
+                playerStates.put(userId, playerState);
 
-                System.out.println("使用者 " + userId + " 已連接，來自：" 
-                                   + clientSocket.getRemoteSocketAddress());
-
-                // 建立一個執行緒處理該使用者的訊息
                 ClientHandler handler = new ClientHandler(clientSocket, userId);
+                clients.add(handler);
                 new Thread(handler).start();
+
+                System.out.println("玩家 " + userId + " 已連接");
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    // 遊戲邏輯循環
+    private static void gameLoop() {
+        while (true) {
+            try {
+                Thread.sleep(TICK_RATE);
+
+                // 更新邏輯
+                synchronized (playerStates) {
+                    for (PlayerState player : playerStates.values()) {
+                        Set<String> keys = player.keysPressed;
+
+                        // 處理移動邏輯
+                        if (keys.contains("w")) player.y -= player.speed;
+                        if (keys.contains("a")) player.x -= player.speed;
+                        if (keys.contains("s")) player.y += player.speed;
+                        if (keys.contains("d")) player.x += player.speed;
+
+                        // 處理射擊邏輯
+                        if (keys.contains(" ")) {
+                            if (player.fireCooldown == 0) { // 冷卻時間結束才能射擊
+                                player.bullets.add(new Bullet(player.x + 20, player.y + 20));
+                                player.fireCooldown = 10; // 設置冷卻時間 (約 160ms)
+                            }
+                        }
+
+                        // 減少射擊冷卻時間
+                        if (player.fireCooldown > 0) {
+                            player.fireCooldown--;
+                        }
+
+                        // 更新子彈位置
+                        Iterator<Bullet> it = player.bullets.iterator();
+                        while (it.hasNext()) {
+                            Bullet bullet = it.next();
+                            bullet.x += bullet.speed;
+                            if (bullet.x > 800) { // 畫面外則移除
+                                it.remove();
+                            }
+                        }
+                    }
+                }
+
+                // 廣播遊戲狀態
+                broadcastGameState();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // 廣播遊戲狀態
+    public static void broadcastGameState() {
+        GameState gameState = new GameState(new ArrayList<>(playerStates.values()));
+        String json = gson.toJson(gameState);
+
+        synchronized (clients) {
+            for (ClientHandler client : clients) {
+                client.sendMessage(json);
+            }
+        }
+    }
+
     static class ClientHandler implements Runnable {
         private Socket socket;
         private int userId;
+        private PrintWriter out;
 
         public ClientHandler(Socket socket, int userId) {
             this.socket = socket;
@@ -41,18 +109,67 @@ public class Server {
 
         @Override
         public void run() {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    // 過濾只保留 w, a, s, d 和空白鍵
-                    // 此範例假設使用者每次只傳一個字元，若傳多字元可自行處理
-                    if (line.equals("w") || line.equals("a") || line.equals("s") || line.equals("d") || line.equals(" ")) {
-                        System.out.println("使用者 " + userId + " 輸入：" + (line.equals(" ") ? "空白鍵" : line));
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"))) {
+                out = new PrintWriter(socket.getOutputStream(), true);
+
+                String command;
+                while ((command = in.readLine()) != null) {
+                    if (command.startsWith("PRESS ")) {
+                        String key = command.substring(6); // 按鍵值
+                        playerStates.get(userId).keysPressed.add(key);
+                    } else if (command.startsWith("RELEASE ")) {
+                        String key = command.substring(8); // 按鍵值
+                        playerStates.get(userId).keysPressed.remove(key);
                     }
                 }
             } catch (IOException e) {
-                System.out.println("使用者 " + userId + " 連線中斷。");
+                System.out.println("玩家 " + userId + " 已斷線");
+            } finally {
+                playerStates.remove(userId);
+                clients.remove(this);
             }
+        }
+
+        public void sendMessage(String msg) {
+            if (out != null) {
+                out.println(msg);
+            }
+        }
+    }
+
+    // 玩家狀態類別
+    static class PlayerState {
+        int userId;
+        int x, y;
+        int speed = 5;
+        int fireCooldown = 0; // 射擊冷卻時間
+        List<Bullet> bullets = new ArrayList<>();
+        Set<String> keysPressed = Collections.synchronizedSet(new HashSet<>()); // 當前按下的按鍵集合
+
+        PlayerState(int userId, int x, int y) {
+            this.userId = userId;
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    // 子彈類別
+    static class Bullet {
+        int x, y;
+        int speed = 10;
+
+        Bullet(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    // 遊戲狀態類別
+    static class GameState {
+        List<PlayerState> players;
+
+        GameState(List<PlayerState> players) {
+            this.players = players;
         }
     }
 }
