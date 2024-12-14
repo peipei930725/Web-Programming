@@ -5,7 +5,7 @@ import com.google.gson.Gson;
 
 public class Server {
     private static final int PORT = 5000;
-    private static final int TICK_RATE = 16; // 每 16ms 更新一次 (約 60fps)
+    private static final int TICK_RATE = 1; // 每 16ms 更新一次 (約 60fps)
 
     private static Map<Integer, PlayerState> playerStates = Collections.synchronizedMap(new HashMap<>());
     private static List<ClientHandler> clients = Collections.synchronizedList(new ArrayList<>());
@@ -56,7 +56,7 @@ public class Server {
                         if (keys.contains(" ")) {
                             if (player.fireCooldown == 0) { // 冷卻時間結束才能射擊
                                 player.bullets.add(new Bullet(player.x + 20, player.y + 20));
-                                player.fireCooldown = 10; // 設置冷卻時間 (約 160ms)
+                                player.fireCooldown = 80; // 設置冷卻時間 (約 160ms)
                             }
                         }
 
@@ -141,7 +141,7 @@ public class Server {
     static class PlayerState {
         int userId;
         int x, y;
-        int speed = 5;
+        int speed = 1;
         int fireCooldown = 0; // 射擊冷卻時間
         List<Bullet> bullets = new ArrayList<>();
         Set<String> keysPressed = Collections.synchronizedSet(new HashSet<>()); // 當前按下的按鍵集合
