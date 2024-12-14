@@ -88,7 +88,7 @@ public class Server {
                                 if (player.bullets.size() < 10) {
                                     player.bullets.add(new Bullet(player.x + 20, player.y + 20, direction, player.bulletColor));
                                 }
-                                player.fireCooldown = 200;
+                                player.fireCooldown = 100;
                             }
                         }
 
@@ -197,7 +197,7 @@ public class Server {
     static class PlayerState {
         int userId;
         int x, y;
-        int speed = 5;
+        int speed = 2;
         int fireCooldown = 0;
         int health; // 玩家血量
         List<Bullet> bullets = new ArrayList<>();
