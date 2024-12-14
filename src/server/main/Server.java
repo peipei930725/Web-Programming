@@ -41,31 +41,37 @@ public class Server {
                 // 接收並存儲 token
                 token = in.readLine();
                 synchronized (tokens) {
-                    if (tokens.size() >= 2) {
-                        out.println("Er0 full");
-                    } else {
+                    // if (tokens.size() >= 2) {
+                    //     out.println("Er0 full");
+                    // } else {
                         tokens.add(token);
                         System.out.println("收到 token: " + token);
-                    }
+                    // }
                 }
-
-                String message;
-                while ((message = in.readLine()) != null) {
-                    System.out.println("收到訊息: " + message);
-                    if (message.endsWith("close")) {
-                        synchronized (tokens) {
-                            tokens.remove(token);
-                            System.out.println("移除 token: " + token);
-                        }
+                while (true) {
+                    String message = in.readLine();
+                    if (message == null) {
                         break;
                     }
+                    System.out.println("收到訊息: " + message);
                     synchronized (clientWriters) {
                         for (PrintWriter writer : clientWriters) {
                             writer.println(message);
                         }
                     }
                 }
-            } catch (IOException e) {
+            } catch (SocketException e) {
+                if (e.getMessage().equals("Connection reset")) {
+                    System.out.println("Connection reset by peer: " + socket);
+                    synchronized (clientWriters) {
+                        for (PrintWriter writer : clientWriters) {
+                            writer.println("check");
+                        }
+                    }
+                } else {
+                    e.printStackTrace();
+                }
+            }catch (IOException e) {
                 e.printStackTrace();
             } finally {
                 try {
