@@ -131,10 +131,10 @@ public class Client extends JFrame {
 
                 g.setColor(Color.BLACK);
                 g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-                g.drawString("玩家 " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
+                g.drawString("Player " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
 
                 if (player.health <= 0) {
-                    g.drawString("玩家 " + (player.userId + 1) + " 已死亡！", healthBarX, healthBarY + 40);
+                    g.drawString("Player " + (player.userId + 1) + " Dead!", healthBarX, healthBarY + 40);
                 }
             }
         }
@@ -145,7 +145,7 @@ public class Client extends JFrame {
             // 顯示獲勝者
             g.setColor(Color.BLACK);
             g.setFont(new Font("Arial", Font.BOLD, 36));
-            g.drawString("玩家 " + (winnerId + 1) + " 獲勝！", getWidth() / 2 - 100, getHeight() / 2 - 100);
+            g.drawString("Player " + (winnerId + 1) + " Win!", getWidth() / 2 - 100, getHeight() / 2 - 100);
 
             // 再來一局按鈕
             if (restartButton == null) {
