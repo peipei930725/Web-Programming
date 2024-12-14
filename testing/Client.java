@@ -71,11 +71,11 @@ public class Client extends JFrame {
             // 繪製玩家和子彈
             for (PlayerState player : players) {
                 // 玩家
-                g.setColor(Color.ORANGE);
+                g.setColor(new Color(player.playerColor)); // 使用伺服器指定的顏色
                 g.fillOval(player.x, player.y, 40, 40);
 
                 // 子彈
-                g.setColor(Color.BLUE);
+                g.setColor(new Color(player.bulletColor)); // 使用伺服器指定的子彈顏色
                 for (Bullet bullet : player.bullets) {
                     g.fillOval(bullet.x, bullet.y, 10, 10);
                 }
@@ -114,6 +114,8 @@ public class Client extends JFrame {
     static class PlayerState {
         int userId;
         int x, y;
+        int playerColor; // RGB 顏色
+        int bulletColor; // RGB 顏色
         List<Bullet> bullets;
     }
 
