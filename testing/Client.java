@@ -66,16 +66,29 @@ public class Client extends JFrame {
     }
 
     private class GamePanel extends JPanel {
-        private JButton restartButton;
-        private JButton exitButton;
+        private Image backgroundImage;
+
+        public GamePanel() {
+            try {
+                // 載入背景圖片
+                backgroundImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/bg.png"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("無法載入背景圖片");
+            }
+        }
 
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
 
-            // 繪製背景
-            g.setColor(Color.WHITE);
-            g.fillRect(0, 0, getWidth(), getHeight());
+            // 繪製背景圖片
+            if (backgroundImage != null) {
+                g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+            } else {
+                g.setColor(Color.WHITE);
+                g.fillRect(0, 0, getWidth(), getHeight());
+            }
 
             // 檢查是否有玩家死亡
             for (PlayerState player : players) {
@@ -129,7 +142,7 @@ public class Client extends JFrame {
                 g.setColor(Color.RED);
                 g.fillRect(healthBarX, healthBarY, healthBarCurrentWidth, healthBarHeight);
 
-                g.setColor(Color.BLACK);
+                g.setColor(Color.white);
                 g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
                 g.drawString("Player " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
 
@@ -148,20 +161,16 @@ public class Client extends JFrame {
             g.drawString("Player " + (winnerId + 1) + " Win!", getWidth() / 2 - 100, getHeight() / 2 - 100);
 
             // 再來一局按鈕
-            if (restartButton == null) {
-                restartButton = new JButton("再來一局");
-                restartButton.setBounds(getWidth() / 2 - 150, getHeight() / 2 - 25, 150, 50);
-                restartButton.addActionListener(e -> restartGame());
-                add(restartButton);
-            }
+            JButton restartButton = new JButton("再來一局");
+            restartButton.setBounds(getWidth() / 2 - 150, getHeight() / 2 - 25, 150, 50);
+            restartButton.addActionListener(e -> restartGame());
+            add(restartButton);
 
             // 結束遊戲按鈕
-            if (exitButton == null) {
-                exitButton = new JButton("結束遊戲");
-                exitButton.setBounds(getWidth() / 2 + 10, getHeight() / 2 - 25, 150, 50);
-                exitButton.addActionListener(e -> System.exit(0));
-                add(exitButton);
-            }
+            JButton exitButton = new JButton("結束遊戲");
+            exitButton.setBounds(getWidth() / 2 + 10, getHeight() / 2 - 25, 150, 50);
+            exitButton.addActionListener(e -> System.exit(0));
+            add(exitButton);
 
             revalidate();
             repaint();
@@ -177,12 +186,6 @@ public class Client extends JFrame {
             player.health = 100; // 重置血量
             player.bullets.clear(); // 清除子彈
         }
-
-        // 移除按鈕
-        gamePanel.remove(gamePanel.restartButton);
-        gamePanel.remove(gamePanel.exitButton);
-        gamePanel.restartButton = null;
-        gamePanel.exitButton = null;
 
         // 重繪遊戲畫面
         gamePanel.revalidate();
