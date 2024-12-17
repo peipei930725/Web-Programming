@@ -77,20 +77,35 @@ public class Server {
     }
 
     private static void spawnHealthPack() {
-        int x = SCREEN_WIDTH / 2 - 20;
-        int y = SCREEN_HEIGHT / 2 - 20;
-        healthPack = new HealthPack(x, y);
-        broadcastHealthPack();
+        // 只有當玩家數量達到最大值時，才生成補包
+        if (clients.size() == 1) {
+            int x = new Random().nextInt(SCREEN_WIDTH - 40);
+            int y = new Random().nextInt(SCREEN_HEIGHT - 40);
+            healthPack = new HealthPack(x, y);
+            System.out.println("補包生成於 (" + x + ", " + y + ")");
+            broadcastHealthPack();
+        }
     }
-
+    
     private static void broadcastHealthPack() {
-        String json = gson.toJson(healthPack);
-        synchronized (clients) {
-            for (ClientHandler client : clients) {
-                client.sendMessage("HEALTH_PACK " + json);
+        if (healthPack != null) {
+            String json = gson.toJson(healthPack);
+            synchronized (clients) {
+                for (ClientHandler client : clients) {
+                    client.sendMessage("HEALTH_PACK " + json);
+                }
             }
         }
     }
+    
+    private static void checkPlayersAndSpawnHealthPack() {
+        // 當兩位玩家都連接時，開始生成補包
+        if (clients.size() == 1 && healthPack == null) {
+            scheduler.schedule(Server::spawnHealthPack, 5, TimeUnit.SECONDS);
+        }
+    }
+    
+    
 
     private static void gameLoop() {
         while (true) {
@@ -152,17 +167,20 @@ public class Server {
                     }
 
                     // 檢測玩家是否碰到補包
+                    // 檢測玩家是否碰到補包
                     if (healthPack != null) {
                         for (PlayerState player : playerStates.values()) {
                             if (player.x < healthPack.x + 40 && player.x + 40 > healthPack.x &&
                                 player.y < healthPack.y + 40 && player.y + 40 > healthPack.y) {
                                 player.health = Math.min(PLAYER_HEALTH, player.health + HEALTH_PACK_HEAL_AMOUNT);
-                                healthPack = null;
+                                System.out.println("玩家 " + player.userId + " 撿取補包，恢復血量至: " + player.health);
+                                healthPack = null; // 移除補包
                                 scheduler.schedule(Server::spawnHealthPack, HEALTH_PACK_RESPAWN_TIME, TimeUnit.SECONDS);
                                 break;
                             }
                         }
                     }
+
                 }
 
                 // 廣播遊戲狀態

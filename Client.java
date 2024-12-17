@@ -25,6 +25,7 @@ public class Client extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        // 建立連線
         try {
             socket = new Socket(HOST, PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
@@ -34,6 +35,7 @@ public class Client extends JFrame {
             System.exit(1);
         }
 
+        // 初始化遊戲面板
         gamePanel = new GamePanel();
         add(gamePanel);
 
@@ -43,27 +45,21 @@ public class Client extends JFrame {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (!gameOver) {
-                    sendCommandToServer("PRESS " + e.getKeyChar());
-                }
+                if (!gameOver) sendCommandToServer("PRESS " + e.getKeyChar());
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
-                if (!gameOver) {
-                    sendCommandToServer("RELEASE " + e.getKeyChar());
-                }
+                if (!gameOver) sendCommandToServer("RELEASE " + e.getKeyChar());
             }
         });
 
-        // 啟動接收伺服器廣播的執行緒
+        // 啟動接收伺服器狀態的執行緒
         new Thread(new GameStateReceiver()).start();
     }
 
     private void sendCommandToServer(String cmd) {
-        if (out != null) {
-            out.println(cmd);
-        }
+        if (out != null) out.println(cmd);
     }
 
     private class GamePanel extends JPanel {
@@ -72,12 +68,12 @@ public class Client extends JFrame {
 
         public GamePanel() {
             try {
-                // 載入背景圖片
+                // 載入背景與補包圖片
                 backgroundImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/bg.png"));
-                healthPackImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/Health_P.png"));
+                healthPackImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/healthpack.png"));
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("無法載入背景圖片或補包圖片");
+                System.out.println("圖片載入失敗！");
             }
         }
 
@@ -93,89 +89,61 @@ public class Client extends JFrame {
                 g.fillRect(0, 0, getWidth(), getHeight());
             }
 
-            // 檢查是否有玩家死亡
-            for (PlayerState player : players) {
-                if (player.health <= 0) {
-                    gameOver = true;
-                    winnerId = (player.userId == 0) ? 1 : 0; // 設定獲勝者ID
-                }
-            }
-            if (healthPack != null && healthPackImage != null) {
-                System.out.println("draw health pack");
-                g.drawImage(healthPackImage, healthPack.x, healthPack.y, 40, 40, this);
+            // 繪製補包
+            if (healthPack != null) {
+                g.setColor(Color.ORANGE);
+                g.fillRect(healthPack.x, healthPack.y, 40, 40);
             }
             // 繪製玩家和子彈
             if (!gameOver) {
                 for (PlayerState player : players) {
-                    // 玩家
                     g.setColor(new Color(player.playerColor));
-                    g.fillOval(player.x, player.y, 60, 60); // 玩家變大
+                    g.fillOval(player.x, player.y, 60, 60);
 
-                    // 子彈
                     g.setColor(new Color(player.bulletColor));
                     for (Bullet bullet : player.bullets) {
-                        g.fillOval(bullet.x, bullet.y, 20, 20); // 子彈變大
+                        g.fillOval(bullet.x, bullet.y, 20, 20);
                     }
                 }
-                                // 繪製補包
-
-                // 繪製血條
                 drawHealthBars(g);
             } else {
-                // 顯示遊戲結束畫面
                 drawGameOverScreen(g);
             }
-
-
         }
 
         private void drawHealthBars(Graphics g) {
             for (PlayerState player : players) {
-                int healthBarWidth = 200;
-                int healthBarHeight = 20;
+                int barWidth = 200, barHeight = 20;
+                int barX = player.userId == 0 ? 50 : getWidth() - 250;
+                int barY = 20;
 
-                int healthBarX, healthBarY;
-                if (player.userId == 0) { // 玩家 1 血條在左上角
-                    healthBarX = 50;
-                    healthBarY = 20;
-                } else { // 玩家 2 血條在右上角
-                    healthBarX = getWidth() - 250;
-                    healthBarY = 20;
-                }
-
-                int healthBarCurrentWidth = (int) ((player.health / 100.0) * healthBarWidth);
+                int currentWidth = (int) ((player.health / 100.0) * barWidth);
 
                 g.setColor(Color.GRAY);
-                g.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+                g.fillRect(barX, barY, barWidth, barHeight);
 
                 g.setColor(Color.RED);
-                g.fillRect(healthBarX, healthBarY, healthBarCurrentWidth, healthBarHeight);
+                g.fillRect(barX, barY, currentWidth, barHeight);
 
-                g.setColor(Color.white);
-                g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-                g.drawString("Player " + (player.userId + 1) + ": " + player.health + " HP", healthBarX, healthBarY - 5);
-
-                if (player.health <= 0) {
-                    g.drawString("Player " + (player.userId + 1) + " Dead!", healthBarX, healthBarY + 40);
-                }
+                g.setColor(Color.WHITE);
+                g.drawRect(barX, barY, barWidth, barHeight);
+                g.drawString("Player " + (player.userId + 1) + ": " + player.health + " HP", barX, barY - 5);
             }
         }
 
         private void drawGameOverScreen(Graphics g) {
             setLayout(null);
 
-            // 顯示獲勝者
+            // 繪製遊戲結束畫面
             g.setColor(Color.BLACK);
             g.setFont(new Font("Arial", Font.BOLD, 36));
             g.drawString("Player " + (winnerId + 1) + " Win!", getWidth() / 2 - 100, getHeight() / 2 - 100);
 
-            // 再來一局按鈕
             JButton restartButton = new JButton("再來一局");
             restartButton.setBounds(getWidth() / 2 - 150, getHeight() / 2 - 25, 150, 50);
             restartButton.addActionListener(e -> restartGame());
             add(restartButton);
 
-            // 結束遊戲按鈕
             JButton exitButton = new JButton("結束遊戲");
             exitButton.setBounds(getWidth() / 2 + 10, getHeight() / 2 - 25, 150, 50);
             exitButton.addActionListener(e -> System.exit(0));
@@ -188,19 +156,7 @@ public class Client extends JFrame {
 
     private void restartGame() {
         gameOver = false;
-        winnerId = -1; // 重置獲勝者ID
-
-        // 重置遊戲狀態
-        for (PlayerState player : players) {
-            player.health = 100; // 重置血量
-            player.bullets.clear(); // 清除子彈
-        }
-
-        // 重繪遊戲畫面
-        gamePanel.revalidate();
-        gamePanel.repaint();
-
-        // 通知伺服器重置遊戲
+        winnerId = -1;
         sendCommandToServer("RESTART");
     }
 
@@ -221,10 +177,9 @@ public class Client extends JFrame {
             try {
                 String json;
                 while ((json = in.readLine()) != null) {
-                    if (json.equals("RESET")) {
-                        resetGame();
-                    } else if (json.startsWith("HEALTH_PACK ")) {
+                    if (json.startsWith("HEALTH_PACK ")) {
                         healthPack = gson.fromJson(json.substring(12), HealthPack.class);
+                        gamePanel.repaint();
                     } else {
                         GameState gameState = gson.fromJson(json, GameState.class);
                         players = gameState.players;
@@ -237,27 +192,8 @@ public class Client extends JFrame {
         }
     }
 
-    private void resetGame() {
-        gameOver = false;
-        winnerId = -1; // 重置獲勝者ID
-
-        // 重置遊戲狀態
-        for (PlayerState player : players) {
-            player.health = 100; // 重置血量
-            player.bullets.clear(); // 清除子彈
-        }
-
-        // 重繪遊戲畫面
-        gamePanel.revalidate();
-        gamePanel.repaint();
-    }
-
     static class PlayerState {
-        int userId;
-        int x, y;
-        int health;
-        int playerColor;
-        int bulletColor;
+        int userId, x, y, health, playerColor, bulletColor;
         List<Bullet> bullets;
     }
 
