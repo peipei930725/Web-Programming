@@ -17,6 +17,7 @@ public class Client extends JFrame {
     private GamePanel gamePanel;
     private boolean gameOver = false; // 遊戲結束標誌
     private int winnerId = -1; // 獲勝者ID
+    private HealthPack healthPack;
 
     public Client() {
         setTitle("Multiplayer Game Client");
@@ -67,14 +68,16 @@ public class Client extends JFrame {
 
     private class GamePanel extends JPanel {
         private Image backgroundImage;
+        private Image healthPackImage;
 
         public GamePanel() {
             try {
                 // 載入背景圖片
                 backgroundImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/bg.png"));
+                healthPackImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/Health_P.png"));
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("無法載入背景圖片");
+                System.out.println("無法載入背景圖片或補包圖片");
             }
         }
 
@@ -97,7 +100,10 @@ public class Client extends JFrame {
                     winnerId = (player.userId == 0) ? 1 : 0; // 設定獲勝者ID
                 }
             }
-
+            if (healthPack != null && healthPackImage != null) {
+                System.out.println("draw health pack");
+                g.drawImage(healthPackImage, healthPack.x, healthPack.y, 40, 40, this);
+            }
             // 繪製玩家和子彈
             if (!gameOver) {
                 for (PlayerState player : players) {
@@ -111,6 +117,7 @@ public class Client extends JFrame {
                         g.fillOval(bullet.x, bullet.y, 20, 20); // 子彈變大
                     }
                 }
+                                // 繪製補包
 
                 // 繪製血條
                 drawHealthBars(g);
@@ -118,6 +125,8 @@ public class Client extends JFrame {
                 // 顯示遊戲結束畫面
                 drawGameOverScreen(g);
             }
+
+
         }
 
         private void drawHealthBars(Graphics g) {
@@ -214,6 +223,8 @@ public class Client extends JFrame {
                 while ((json = in.readLine()) != null) {
                     if (json.equals("RESET")) {
                         resetGame();
+                    } else if (json.startsWith("HEALTH_PACK ")) {
+                        healthPack = gson.fromJson(json.substring(12), HealthPack.class);
                     } else {
                         GameState gameState = gson.fromJson(json, GameState.class);
                         players = gameState.players;
@@ -256,6 +267,10 @@ public class Client extends JFrame {
 
     static class GameState {
         List<PlayerState> players;
+    }
+
+    static class HealthPack {
+        int x, y;
     }
 
     public static void main(String[] args) {

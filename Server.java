@@ -3,6 +3,9 @@ import java.net.*;
 import java.util.*;
 import com.google.gson.Gson;
 import java.awt.Color;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Server {
     private static final int PORT = 5000;
@@ -10,24 +13,31 @@ public class Server {
 
     private static final int MAX_PLAYERS = 2; // 限制遊戲人數為兩人
     private static final int PLAYER_HEALTH = 100; // 初始血量
+    private static final int HEALTH_PACK_RESPAWN_TIME = 10; // 補包重生時間（秒）
+    private static final int HEALTH_PACK_HEAL_AMOUNT = 10; // 補包恢復血量
 
     private static Map<Integer, PlayerState> playerStates = Collections.synchronizedMap(new HashMap<>());
     private static List<ClientHandler> clients = Collections.synchronizedList(new ArrayList<>());
     private static Gson gson = new Gson();
+    private static HealthPack healthPack;
+    private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private static final int SCREEN_WIDTH = 1280;
     private static final int SCREEN_HEIGHT = 680;
 
     public static void main(String[] args) {
+        boolean flag = true;
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("伺服器已啟動，等待連線...");
 
             // 啟動遊戲邏輯更新執行緒
             new Thread(Server::gameLoop).start();
+            scheduler.schedule(Server::spawnHealthPack, 5, TimeUnit.SECONDS); // 5秒後生成補包
 
             while (true) {
-                if (clients.size() >= MAX_PLAYERS) {
+                if (clients.size() >= MAX_PLAYERS && flag) {
                     System.out.println("玩家數量已達到上限！");
+                    flag = false;
                     continue;
                 }
 
@@ -63,6 +73,22 @@ public class Server {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void spawnHealthPack() {
+        int x = SCREEN_WIDTH / 2 - 20;
+        int y = SCREEN_HEIGHT / 2 - 20;
+        healthPack = new HealthPack(x, y);
+        broadcastHealthPack();
+    }
+
+    private static void broadcastHealthPack() {
+        String json = gson.toJson(healthPack);
+        synchronized (clients) {
+            for (ClientHandler client : clients) {
+                client.sendMessage("HEALTH_PACK " + json);
+            }
         }
     }
 
@@ -121,6 +147,19 @@ public class Server {
                             // 檢測子彈是否出界
                             if (bullet.x > SCREEN_WIDTH || bullet.x < 0) {
                                 it.remove();
+                            }
+                        }
+                    }
+
+                    // 檢測玩家是否碰到補包
+                    if (healthPack != null) {
+                        for (PlayerState player : playerStates.values()) {
+                            if (player.x < healthPack.x + 40 && player.x + 40 > healthPack.x &&
+                                player.y < healthPack.y + 40 && player.y + 40 > healthPack.y) {
+                                player.health = Math.min(PLAYER_HEALTH, player.health + HEALTH_PACK_HEAL_AMOUNT);
+                                healthPack = null;
+                                scheduler.schedule(Server::spawnHealthPack, HEALTH_PACK_RESPAWN_TIME, TimeUnit.SECONDS);
+                                break;
                             }
                         }
                     }
@@ -238,6 +277,15 @@ public class Server {
 
         GameState(List<PlayerState> players) {
             this.players = players;
+        }
+    }
+
+    static class HealthPack {
+        int x, y;
+
+        HealthPack(int x, int y) {
+            this.x = x;
+            this.y = y;
         }
     }
 }

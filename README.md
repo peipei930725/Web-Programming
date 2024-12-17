@@ -12,6 +12,6 @@ Radmin VPN
 
 # /testing 裡面的程式執行
 
-cd testing
+
 java -cp ".;lib/*" Server.java
 java -cp ".;lib/*" Client.java
