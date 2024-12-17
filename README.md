@@ -12,5 +12,5 @@ Radmin VPN
 
 # /testing 裡面的程式執行
 
-java -cp ".;testing/lib/_" Server.java
-java -cp ".;testing/lib/_" Client.java
+java -cp ".;testing/lib/*" Server.java
+java -cp ".;testing/lib/*" Client.java
