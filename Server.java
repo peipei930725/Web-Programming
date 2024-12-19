@@ -6,6 +6,9 @@ import java.awt.Color;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
 
 public class Server {
     private static final int PORT = 5000;
@@ -80,9 +83,10 @@ public class Server {
     private static void spawnHealthPack() {
         // 只有當玩家數量達到最大值時，才生成補包
         if (clients.size() == 2) {
-            // int x = new Random().nextInt(SCREEN_WIDTH - 40);
-            // int y = new Random().nextInt(SCREEN_HEIGHT - 40);
-            healthPack = new HealthPack(SCREEN_WIDTH /2- 40, SCREEN_HEIGHT /2- 40);
+            int padding = 40; // 確保補包完全在畫面內
+            int x = new Random().nextInt(SCREEN_WIDTH - padding * 2) + padding;
+            int y = new Random().nextInt(SCREEN_HEIGHT - padding * 2) + padding;
+            healthPack = new HealthPack(x, y);
             broadcastHealthPack();
         }
     }
@@ -102,6 +106,9 @@ public class Server {
                 }
             }
         }
+    }
+    private static void spawnTrapBullet(){
+
     }
     
     
@@ -198,7 +205,7 @@ public class Server {
             }
         }
     }
-
+    
     private static void broadcastGameState() {
         GameState gameState = new GameState(new ArrayList<>(playerStates.values()));
         String json = gson.toJson(gameState);

@@ -5,7 +5,8 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
-import com.google.gson.Gson;
+import com.google.gson.Gson;;
+
 
 public class Client extends JFrame {
     private static final String HOST = "127.0.0.1";
@@ -37,6 +38,7 @@ public class Client extends JFrame {
 
         // 初始化遊戲面板
         gamePanel = new GamePanel();
+        BackgroundMusic.play();
         add(gamePanel);
 
         // 處理按鍵事件
