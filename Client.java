@@ -70,7 +70,10 @@ public class Client extends JFrame {
             try {
                 // 載入背景與補包圖片
                 backgroundImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/bg.png"));
-                healthPackImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/healthpack.png"));
+                healthPackImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/img/hp.jpg"));
+                if (healthPackImage == null) {
+                    System.out.println("補包圖片載入失敗！");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("圖片載入失敗！");
@@ -88,13 +91,10 @@ public class Client extends JFrame {
                 g.setColor(Color.WHITE);
                 g.fillRect(0, 0, getWidth(), getHeight());
             }
+            
 
-            // 繪製補包
-            if (healthPack != null) {
-                g.setColor(Color.ORANGE);
-                g.fillRect(healthPack.x, healthPack.y, 40, 40);
-            }
-            // 繪製玩家和子彈
+
+            // 繪製玩家和子彈繪製補包
             if (!gameOver) {
                 for (PlayerState player : players) {
                     g.setColor(new Color(player.playerColor));
@@ -103,6 +103,11 @@ public class Client extends JFrame {
                     g.setColor(new Color(player.bulletColor));
                     for (Bullet bullet : player.bullets) {
                         g.fillOval(bullet.x, bullet.y, 20, 20);
+                    }
+                    if (healthPack != null) {
+                        int x = healthPack.x;
+                        int y = healthPack.y;
+                        g.drawImage(healthPackImage, x, y, 40, 40, this);
                     }
                 }
                 drawHealthBars(g);
@@ -178,7 +183,13 @@ public class Client extends JFrame {
                 String json;
                 while ((json = in.readLine()) != null) {
                     if (json.startsWith("HEALTH_PACK ")) {
-                        healthPack = gson.fromJson(json.substring(12), HealthPack.class);
+                        System.out.println(json);
+                        HealthPack receivedHealthPack = gson.fromJson(json.substring(12), HealthPack.class);
+                        if (receivedHealthPack.x == 0 && receivedHealthPack.y == 0) {
+                            healthPack = null; // 伺服器同步補包已刪除
+                        } else {
+                            healthPack = receivedHealthPack; // 更新補包狀態
+                        }
                         gamePanel.repaint();
                     } else {
                         GameState gameState = gson.fromJson(json, GameState.class);

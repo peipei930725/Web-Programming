@@ -36,6 +36,7 @@ public class Server {
 
             while (true) {
                 if (clients.size() >= MAX_PLAYERS && flag) {
+                    checkPlayersAndSpawnHealthPack();
                     System.out.println("玩家數量已達到上限！");
                     flag = false;
                     continue;
@@ -78,11 +79,10 @@ public class Server {
 
     private static void spawnHealthPack() {
         // 只有當玩家數量達到最大值時，才生成補包
-        if (clients.size() == 1) {
-            int x = new Random().nextInt(SCREEN_WIDTH - 40);
-            int y = new Random().nextInt(SCREEN_HEIGHT - 40);
-            healthPack = new HealthPack(x, y);
-            System.out.println("補包生成於 (" + x + ", " + y + ")");
+        if (clients.size() == 2) {
+            // int x = new Random().nextInt(SCREEN_WIDTH - 40);
+            // int y = new Random().nextInt(SCREEN_HEIGHT - 40);
+            healthPack = new HealthPack(SCREEN_WIDTH /2- 40, SCREEN_HEIGHT /2- 40);
             broadcastHealthPack();
         }
     }
@@ -95,12 +95,19 @@ public class Server {
                     client.sendMessage("HEALTH_PACK " + json);
                 }
             }
+        }else {
+            synchronized (clients) {
+                for (ClientHandler client : clients) {
+                    client.sendMessage("HEALTH_PACK " + "{\"x\":0,\"y\":0}");
+                }
+            }
         }
     }
     
+    
     private static void checkPlayersAndSpawnHealthPack() {
         // 當兩位玩家都連接時，開始生成補包
-        if (clients.size() == 1 && healthPack == null) {
+        if (clients.size() == 2 && healthPack == null) {
             scheduler.schedule(Server::spawnHealthPack, 5, TimeUnit.SECONDS);
         }
     }
@@ -175,6 +182,7 @@ public class Server {
                                 player.health = Math.min(PLAYER_HEALTH, player.health + HEALTH_PACK_HEAL_AMOUNT);
                                 System.out.println("玩家 " + player.userId + " 撿取補包，恢復血量至: " + player.health);
                                 healthPack = null; // 移除補包
+                                broadcastHealthPack(); // 同步到所有客戶端
                                 scheduler.schedule(Server::spawnHealthPack, HEALTH_PACK_RESPAWN_TIME, TimeUnit.SECONDS);
                                 break;
                             }
