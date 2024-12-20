@@ -7,8 +7,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.sound.sampled.*;
-import java.io.File;
-import java.io.IOException;
 
 public class Server {
     private static final int PORT = 5000;
@@ -107,9 +105,7 @@ public class Server {
             }
         }
     }
-    private static void spawnTrapBullet(){
 
-    }
     
     
     private static void checkPlayersAndSpawnHealthPack() {
@@ -168,6 +164,11 @@ public class Server {
                                         target.health -= 10; // 擊中時扣血
                                         it.remove(); // 移除子彈
                                         System.out.println("玩家 " + target.userId + " 被擊中！剩餘血量：" + target.health);
+                                        if (target.health <= 0) {
+                                            broadcastGameOver(player.userId); // 廣播勝利者
+                                            resetGame();
+                                            return; // 結束遊戲迴圈
+                                        }
                                         break;
                                     }
                                 }
@@ -205,7 +206,16 @@ public class Server {
             }
         }
     }
-    
+    private static void broadcastGameOver(int winnerId) {
+        String message = "GAME_OVER " + winnerId;
+        synchronized (clients) {
+            for (ClientHandler client : clients) {
+                client.sendMessage(message);
+            }
+        }
+        System.out.println("遊戲結束！玩家 " + winnerId + " 獲勝！");
+        System.exit(0);
+    }
     private static void broadcastGameState() {
         GameState gameState = new GameState(new ArrayList<>(playerStates.values()));
         String json = gson.toJson(gameState);

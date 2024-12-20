@@ -146,13 +146,13 @@ public class Client extends JFrame {
             g.setFont(new Font("Arial", Font.BOLD, 36));
             g.drawString("Player " + (winnerId + 1) + " Win!", getWidth() / 2 - 100, getHeight() / 2 - 100);
 
-            JButton restartButton = new JButton("再來一局");
-            restartButton.setBounds(getWidth() / 2 - 150, getHeight() / 2 - 25, 150, 50);
-            restartButton.addActionListener(e -> restartGame());
-            add(restartButton);
+            // JButton restartButton = new JButton("再來一局");
+            // restartButton.setBounds(getWidth() / 2 - 150, getHeight() / 2 - 25, 150, 50);
+            // restartButton.addActionListener(e -> restartGame());
+            // add(restartButton);
 
             JButton exitButton = new JButton("結束遊戲");
-            exitButton.setBounds(getWidth() / 2 + 10, getHeight() / 2 - 25, 150, 50);
+            exitButton.setBounds(getWidth() / 2 - 100 , getHeight() / 2 - 25, 150, 50);
             exitButton.addActionListener(e -> System.exit(0));
             add(exitButton);
 
@@ -192,6 +192,11 @@ public class Client extends JFrame {
                         } else {
                             healthPack = receivedHealthPack; // 更新補包狀態
                         }
+                        gamePanel.repaint();
+                    } else if (json.startsWith("GAME_OVER ")) {
+                        int winnerId = Integer.parseInt(json.split(" ")[1]);
+                        gameOver = true;
+                        Client.this.winnerId = winnerId; // 設置獲勝者 ID
                         gamePanel.repaint();
                     } else {
                         GameState gameState = gson.fromJson(json, GameState.class);
