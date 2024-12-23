@@ -25,6 +25,7 @@ public class Server {
 
     private static final int SCREEN_WIDTH = 1280;
     private static final int SCREEN_HEIGHT = 680;
+    private static List<BlackBullet> blackBullets = Collections.synchronizedList(new ArrayList<>());
 
     public static void main(String[] args) {
         boolean flag = true;
@@ -121,7 +122,29 @@ public class Server {
         while (true) {
             try {
                 Thread.sleep(TICK_RATE);
+                synchronized (blackBullets) {
+                    Iterator<BlackBullet> it = blackBullets.iterator();
+                    while (it.hasNext()) {
+                        BlackBullet bullet = it.next();
+                        bullet.move();
+                        // 檢測黑色子彈是否擊中玩家
+                        for (PlayerState player : playerStates.values()) {
+                            if (bullet.x >= player.x && bullet.x <= player.x + 40 &&
+                                bullet.y >= player.y && bullet.y <= player.y + 40) {
+                                player.health -= 20;
+                                it.remove(); // 子彈消失
+                                System.out.println("玩家 " + player.userId + " 被黑色子彈擊中，剩餘血量：" + player.health);
 
+                                if (player.health <= 0) {
+                                    broadcastGameOver(player.userId); // 廣播遊戲結束
+                                    resetGame(); // 重置遊戲
+                                    return;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
                 synchronized (playerStates) {
                     for (PlayerState player : playerStates.values()) {
                         Set<String> keys = player.keysPressed;
@@ -191,6 +214,7 @@ public class Server {
                                 System.out.println("玩家 " + player.userId + " 撿取補包，恢復血量至: " + player.health);
                                 healthPack = null; // 移除補包
                                 broadcastHealthPack(); // 同步到所有客戶端
+                                spawnBlackBullet(); // 生成黑色子彈
                                 scheduler.schedule(Server::spawnHealthPack, HEALTH_PACK_RESPAWN_TIME, TimeUnit.SECONDS);
                                 break;
                             }
@@ -216,16 +240,8 @@ public class Server {
         System.out.println("遊戲結束！玩家 " + winnerId + " 獲勝！");
         System.exit(0);
     }
-    private static void broadcastGameState() {
-        GameState gameState = new GameState(new ArrayList<>(playerStates.values()));
-        String json = gson.toJson(gameState);
 
-        synchronized (clients) {
-            for (ClientHandler client : clients) {
-                client.sendMessage(json);
-            }
-        }
-    }
+
 
     private static void resetGame() {
         playerStates.clear();
@@ -317,9 +333,10 @@ public class Server {
 
     static class GameState {
         List<PlayerState> players;
-
+        List<BlackBullet> blackBullets;
         GameState(List<PlayerState> players) {
             this.players = players;
+            this.blackBullets = new ArrayList<>();
         }
     }
 
@@ -331,4 +348,75 @@ public class Server {
             this.y = y;
         }
     }
+    private static void broadcastGameState() {
+        GameState gameState = new GameState(new ArrayList<>(playerStates.values()));
+        gameState.blackBullets = new ArrayList<>(blackBullets); // 添加黑色子彈狀態
+        String json = gson.toJson(gameState);
+    
+        synchronized (clients) {
+            for (ClientHandler client : clients) {
+                client.sendMessage(json);
+            }
+        }
+    }
+    
+    private static void spawnBlackBullet() {
+        int[][] corners = {{0, 0}, {0, SCREEN_HEIGHT - 20}, {SCREEN_WIDTH - 20, 0}, {SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20}};
+        Random rand = new Random();
+        int[] corner = corners[rand.nextInt(4)];
+        int dx = rand.nextBoolean() ? 1 : -1; // 隨機方向
+        int dy = rand.nextBoolean() ? 1 : -1;
+    
+        BlackBullet bullet = new BlackBullet(corner[0], corner[1], dx, dy);
+        blackBullets.add(bullet);
+    }
+    
+    static class BlackBullet {
+        int x, y;
+        double dx, dy; // 使用 double 表示更細緻的方向向量
+        int speed = 4; // 子彈速度
+    
+        BlackBullet(int x, int y, double dx, double dy) {
+            this.x = x;
+            this.y = y;
+            setDirection(dx, dy);
+        }
+    
+        // 設置方向並單位化
+        private void setDirection(double dx, double dy) {
+            double length = Math.sqrt(dx * dx + dy * dy);
+            this.dx = dx / length;
+            this.dy = dy / length;
+        }
+    
+        // 子彈移動
+        void move() {
+            x += dx * speed;
+            y += dy * speed;
+    
+            if (x <= 0 || x >= SCREEN_WIDTH - 20) {
+                dx = -dx;
+                randomizeDirection(); 
+            }
+            if (y <= 0 || y >= SCREEN_HEIGHT - 20) {
+                dy = -dy; 
+                randomizeDirection(); 
+            }
+        }
+    
+        // 隨機調整反彈角度
+        private void randomizeDirection() {
+            double angle = Math.random() * Math.PI / 4;
+            double newDx = dx * Math.cos(angle) - dy * Math.sin(angle);
+            double newDy = dx * Math.sin(angle) + dy * Math.cos(angle);
+    
+            // 隨機反轉方向
+            if (Math.random() > 0.5) newDx = -newDx;
+            if (Math.random() > 0.5) newDy = -newDy;
+    
+            setDirection(newDx, newDy); // 更新方向向量
+        }
+    }
+    
+    
 }

@@ -19,6 +19,7 @@ public class Client extends JFrame {
     private boolean gameOver = false; // 遊戲結束標誌
     private int winnerId = -1; // 獲勝者ID
     private HealthPack healthPack;
+    private List<BlackBullet> blackBullets = new ArrayList<>();
 
     public Client() {
         setTitle("Multiplayer Game Client");
@@ -93,7 +94,11 @@ public class Client extends JFrame {
                 g.setColor(Color.WHITE);
                 g.fillRect(0, 0, getWidth(), getHeight());
             }
-            
+                // 繪製黑色子彈
+            g.setColor(Color.BLACK);
+            for (BlackBullet bullet : blackBullets) {
+                g.fillOval(bullet.x, bullet.y, 20, 20);
+            }
 
 
             // 繪製玩家和子彈繪製補包
@@ -112,6 +117,7 @@ public class Client extends JFrame {
                         g.drawImage(healthPackImage, x, y, 40, 40, this);
                     }
                 }
+
                 drawHealthBars(g);
             } else {
                 drawGameOverScreen(g);
@@ -201,6 +207,7 @@ public class Client extends JFrame {
                     } else {
                         GameState gameState = gson.fromJson(json, GameState.class);
                         players = gameState.players;
+                        blackBullets = gameState.blackBullets;
                         gamePanel.repaint();
                     }
                 }
@@ -221,12 +228,26 @@ public class Client extends JFrame {
 
     static class GameState {
         List<PlayerState> players;
+        List<BlackBullet> blackBullets;
+    
+        GameState(List<PlayerState> players) {
+            this.players = players;
+            this.blackBullets = new ArrayList<>();
+        }
     }
 
     static class HealthPack {
         int x, y;
     }
-
+    static class BlackBullet {
+        int x, y;
+    
+        BlackBullet(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+    
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Client client = new Client();
